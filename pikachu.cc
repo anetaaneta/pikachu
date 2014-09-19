@@ -85,6 +85,7 @@ int main (int argc, char *argv[])
 	tcp_rmem_max= SplitLastValue(tcp_rmem);
 	tcp_wmem_max= SplitLastValue(tcp_wmem);
 	tcp_config_server_max= SplitLastValue(tcp_config_server);
+  
   cout<<"done splitting, values are "<< tcp_rmem_max <<", "<< tcp_wmem_max <<", "<< tcp_config_server_max<<endl;
   
   NodeContainer node, router;
@@ -101,12 +102,12 @@ int main (int argc, char *argv[])
   LinuxStackHelper stack;
   stack.Install (node);
   stack.Install (router);
-	cout<<"stack installation: OK"<< endl;
+  
   dceManager.Install (node);
   dceManager.Install (router);
-	cout<<"dce installation: OK"<< endl;
+  cout<<"dce installation: OK"<< endl;
   cout<<"setting up tcp_mem..";
-  /*
+  
   stack.SysctlSet (node.Get(0), ".net.ipv4.tcp_wmem", tcp_wmem);
   stack.SysctlSet (node.Get(0), ".net.ipv4.tcp_rmem", tcp_rmem);
   stack.SysctlSet (node.Get(0), ".net.ipv4.tcp_mem", tcp_mem);
@@ -121,7 +122,7 @@ int main (int argc, char *argv[])
   stack.SysctlSet (node.Get(2), ".net.core.wmem_max", tcp_config_server_max);
                    
   stack.SysctlSet (node, ".net.ipv4.tcp_congestion_control", "reno");
-	*/
+	
   cout<<"done"<<endl;
   cout<<"building topology"<<endl;
   
