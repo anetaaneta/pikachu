@@ -60,6 +60,7 @@ int main (int argc, char *argv[])
   string tcp_config_server = "4096 8192 8388608";
   string tcp_config_server_max = "8388608";
   string tcp_config="";
+  int path_num = 3;
   
   float interval = 0.1;
   
@@ -68,6 +69,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("tcp_config", "tcp read and write memory in bytes, separated by comma, no space after comma. ex: 524288,1048576,2097152", tcp_config);
   cmd.AddValue ("tcp_config_server", "tcp read and write memory in bytes, separated by comma, no space after comma. ex: 4096,8192,8388608", tcp_config_server);
   cmd.AddValue ("interval", "interval time to connect and disconnect from wifi 1 to wifi 2", interval);
+  cmd.AddValue ("path_num", "number of path to be created between wender and receiver", path_num);
   cmd.Parse (argc, argv);
 	
 	tcp_mem=RemoveComma(tcp_mem);
@@ -88,9 +90,12 @@ int main (int argc, char *argv[])
   
   cout<<"done splitting, values are "<< tcp_rmem_max <<", "<< tcp_wmem_max <<", "<< tcp_config_server_max<<endl;
   
-  NodeContainer node, router;
+  NodeContainer node, routerSend, routerReceive, nuisanceSend, nuisanceReceive;
   node.Create (2);
-  router.Create (3);
+  routerSend.Create (3);
+  routerReceive.Create (3);
+  nuisanceSend.Create(3);
+  nuisanceReceive.Create(3);
 
   DceManagerHelper dceManager;
   dceManager.SetTaskManagerAttribute ("FiberManagerType",
@@ -101,7 +106,10 @@ int main (int argc, char *argv[])
 	cout<<"liblinux: OK"<<endl;
   LinuxStackHelper stack;
   stack.Install (node);
-  stack.Install (router);
+  stack.Install (routerSend);
+  stack.Install (routerReceive);
+  stack.Install (nuisanceSend);
+  stack.Install (nuisanceReceive);
   
   dceManager.Install (node);
   dceManager.Install (router);
@@ -118,179 +126,122 @@ int main (int argc, char *argv[])
   stack.SysctlSet (node.Get(0), ".net.core.rmem_max", tcp_rmem_max);
   stack.SysctlSet (node.Get(0), ".net.core.wmem_max", tcp_wmem_max);
                    
-  stack.SysctlSet (node.Get(2), ".net.core.rmem_max", tcp_config_server_max);
-  stack.SysctlSet (node.Get(2), ".net.core.wmem_max", tcp_config_server_max);
-                   
+  stack.SysctlSet (node.Get(1), ".net.core.rmem_max", tcp_config_server_max);
+  stack.SysctlSet (node.Get(1), ".net.core.wmem_max", tcp_config_server_max);
+  
+  stack.SysctlSet (core.Get(0), ".net.core.netdev_max_backlog", "250000");
+  stack.SysctlSet (core.Get(1), ".net.core.netdev_max_backlog", "250000");                 
   stack.SysctlSet (node, ".net.ipv4.tcp_congestion_control", "reno");
 	
-  cout<<"done"<<endl;
-  cout<<"building topology"<<endl;
   
-  PointToPointHelper p2p;
-  cout<<"p2p"<<endl;
-  NetDeviceContainer devices1, devices2, devices3;
-  cout<<"devices"<<endl;
-  Ipv4AddressHelper address1, address2;
-  cout<<"ip4addr"<<endl;
+  PointToPointHelper pointToPoint;
+  NetDeviceContainer senderlink, receiverlink, snuisancelink, rnuisancelink, r2r;
+  Ipv4AddressHelper address1, address2, address3, address4, address5;
   
   std::ostringstream cmd_oss;
   address1.SetBase ("10.1.0.0", "255.255.255.0");
   address2.SetBase ("10.2.0.0", "255.255.255.0");
+  address3.SetBase ("10.3.0.0", "255.255.255.0");
+  address4.SetBase ("10.4.0.0", "255.255.255.0");
+  address5.SetBase ("10.5.0.0", "255.255.255.0");
   cout<<"ip4addr base"<<endl;
   
-  Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=2.0]"), "ErrorRate", DoubleValue (0.01),"ErrorUnit", EnumValue (RateErrorModel::ERROR_UNIT_PACKET));
   
-  Ptr<RateErrorModel> ew = CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"), "ErrorRate", DoubleValue (0.01),"ErrorUnit", EnumValue (RateErrorModel::ERROR_UNIT_PACKET));
-  cout<<"error model"<<endl;
-  
-  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-  LinuxStackHelper::PopulateRoutingTables ();
+	
+
+	
+	for (uint32_t i = 0; i < 3; i++)
+    {
+      //create topology of sender to sender's router
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      senderlink = pointToPoint.Install (node.Get (0), routerSend.Get (i));
+      // Assign ip addresses
+      Ipv4InterfaceContainer if1 = address1.Assign (senderlink);
+      address1.NewNetwork ();
+      // setup ip routes
+      cmd_oss.str ("");
+      cmd_oss << "rule add from " << if1.GetAddress (0, 0) << " table " << (i+1);
+      LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.1." << i << ".0/24 dev sim" << i << " scope link table " << (i+1);
+      LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add default via " << if1.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
+      LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      //cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
+      //LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      
+      //link between routers
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      r2r = pointToPoint.Install (routerSend.Get (i), routerReceive.Get (i));
+      // Assign ip addresses
+      Ipv4InterfaceContainer if2 = address2.Assign (r2r);
+      address2.NewNetwork ();
+      
+        
+      // Link from receiver to receiver's router
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      receiverlink = pointToPoint.Install (node.Get (1), routerReceive.Get (i));
+      // Assign ip addresses
+      Ipv4InterfaceContainer if3 = address3.Assign (receiverlink);
+      address3.NewNetwork ();
+      // setup ip routes
+      cmd_oss.str ("");
+      cmd_oss << "rule add from " << if3.GetAddress (0, 0) << " table " << (i+1);
+      LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.3." << i << ".0/24 dev sim" << i << " scope link table " << (i+1);
+      LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add default via " << if3.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
+      LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      //cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
+      //LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      
+      
+      //link from sender's nuisance to sender's router
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      snuisancelink = pointToPoint.Install (nuisanceSend.Get (i), routerSend.Get (i));
+      // Assign ip addresses
+      Ipv4InterfaceContainer if4 = address4.Assign (snuisancelink);
+      address4.NewNetwork ();
+      
+      //link from receiver's nuisance to receiver's router
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
+      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      rnuisancelink = pointToPoint.Install (nuisanceReceive.Get (i), routerReceive.Get (i));
+      // Assign ip addresses
+      Ipv4InterfaceContainer if5 = address5.Assign (rnuisancelink);
+      address5.NewNetwork ();
+      
+
+      setPos (routerSend.Get (i), 40, i * 30, 0);
+      setPos (routerSend.Get (i), 80, i * 30, 0);
+      setPos (nuisanceSend.Get (i), 30, 10+(i*30), 0);
+      setPos (nuisanceReceive.Get (i), 90, 10+(i*30), 0);
+    }
+	
+	
+	Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+  	#ifdef KERNEL_STACK
+  	LinuxStackHelper::PopulateRoutingTables ();
+	#endif
 	cout<<"populate routing tables"<<endl;
 	
-	cout<<"p2p building node 0"<<endl;
-  //left side, these are configurations for node 0
-	/*this one is for client to p2p LTE*/
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("15ms"));
-    devices1 = p2p.Install (node.Get (0), router.Get (0));
-	devices1.Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
-	// Assign ip addresses
-    Ipv4InterfaceContainer ltelink = address1.Assign (devices1);
-    address1.NewNetwork ();
-	
-	/*client to p2p wifi1*/
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("15ms"));
-    devices2 = p2p.Install (node.Get (0), router.Get (1));
-	devices2.Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (ew));
-	// Assign ip addresses
-    Ipv4InterfaceContainer wifi1 = address1.Assign (devices2);
-    address1.NewNetwork ();
-	
-	/*client to p2p wifi2*/
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("15ms"));
-    devices3 = p2p.Install (node.Get (0), router.Get (2));
-	devices3.Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (ew));
-	// Assign ip addresses
-    Ipv4InterfaceContainer wifi2 = address1.Assign (devices3);
-    address1.NewNetwork ();
-	
-	cmd_oss.str ("");
-    cmd_oss << "rule add from " << ltelink.GetAddress (0, 0) << " table 1";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-	cmd_oss << "rule add from " << wifi1.GetAddress (0, 0) << " table 2";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-	cmd_oss << "rule add from " << wifi2.GetAddress (0, 0) << " table 3";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-  
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.1.0.0/24 dev sim0 scope link table 1";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.1.1.0/24 dev sim1 scope link table 2";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.1.2.0/24 dev sim2 scope link table 3";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	
-	cmd_oss.str ("");
-    cmd_oss << "route add default via " << ltelink.GetAddress (1, 0) << " dev sim0 table 1";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add default via " << wifi1.GetAddress (1, 0) << " dev sim1 table 2";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add default via " << wifi2.GetAddress (1, 0) << " dev sim2 table 3";
-    LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-    
-	cout<<"p2p building node 1"<<endl;
-  //right side, configuration for node 1
-	/*this one is for client to p2p LTE*/
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("15ms"));
-    devices1 = p2p.Install (node.Get (1), router.Get (0));
-	// Assign ip addresses
-    ltelink = address2.Assign (devices1);
-    address2.NewNetwork ();
-	
-	/*client to p2p wifi1*/
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("15ms"));
-    devices2 = p2p.Install (node.Get (1), router.Get (1));
-	// Assign ip addresses
-    wifi1 = address2.Assign (devices2);
-    address2.NewNetwork ();
-	
-	/*client to p2p wifi2*/
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("15ms"));
-    devices3 = p2p.Install (node.Get (1), router.Get (2));
-	// Assign ip addresses
-    wifi2 = address2.Assign (devices3);
-    address2.NewNetwork ();
-	
-	cmd_oss.str ("");
-    cmd_oss << "rule add from " << ltelink.GetAddress (0, 0) << " table 1";
+	setPos (node.Get (0), 0, 30 * (3 - 1) / 2, 0);
+   	setPos (node.Get (1), 120, 30 * (3 - 1) / 2, 0);
 	
 	
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-	cmd_oss << "rule add from " << wifi1.GetAddress (0, 0) << " table 2";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-	cmd_oss << "rule add from " << wifi2.GetAddress (0, 0) << " table 3";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-  
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.2.0.0/24 dev sim0 scope link table 1";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.2.1.0/24 dev sim1 scope link table 2";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.2.2.0/24 dev sim2 scope link table 3";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	
-	cmd_oss.str ("");
-    cmd_oss << "route add default via " << ltelink.GetAddress (1, 0) << " dev sim0 table 1";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add default via " << wifi1.GetAddress (1, 0) << " dev sim1 table 2";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add default via " << wifi2.GetAddress (1, 0) << " dev sim2 table 3";
-    LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-	/*cout<<"router position"<<endl;
-    setPos (router.Get (0), 50, 30, 0);
-	setPos (router.Get (1), 50, 20, 0);
-	setPos (router.Get (2), 50, 10, 0);
-	*/
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.1.0.0/16 via " << ltelink.GetAddress (1, 0) << " dev sim0";
-    LinuxStackHelper::RunIp (router.Get (0), Seconds (0.2), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.1.0.0/16 via " << ltelink.GetAddress (1, 0) << " dev sim0";
-    LinuxStackHelper::RunIp (router.Get (1), Seconds (0.2), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.1.0.0/16 via " << ltelink.GetAddress (1, 0) << " dev sim0";
-    LinuxStackHelper::RunIp (router.Get (2), Seconds (0.2), cmd_oss.str ().c_str ());
-	
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.2.0.0/16 via " << ltelink.GetAddress (1, 0) << " dev sim1";
-    LinuxStackHelper::RunIp (router.Get (0), Seconds (0.2), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.2.0.0/16 via " << wifi1.GetAddress (1, 0) << " dev sim1";
-    LinuxStackHelper::RunIp (router.Get (1), Seconds (0.2), cmd_oss.str ().c_str ());
-	cmd_oss.str ("");
-    cmd_oss << "route add 10.2.0.0/16 via " << wifi1.GetAddress (1, 0) << " dev sim1";
-    LinuxStackHelper::RunIp (router.Get (2), Seconds (0.2), cmd_oss.str ().c_str ());
-
+		
   // default route
   LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), "route add default via 10.1.0.2 dev sim0");
-  LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), "route add default via 10.2.0.2 dev sim0");
+  LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), "route add default via 10.3.0.2 dev sim0");
   //LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), "rule show");
   cout<<"default route"<<endl;
 
@@ -309,22 +260,22 @@ int main (int argc, char *argv[])
   dce.ResetArguments ();
   dce.ResetEnvironment ();
   dce.AddArgument ("-c");
-  dce.AddArgument ("10.1.0.1");
+  dce.AddArgument ("10.3.0.1");
   dce.AddArgument ("-i");
   dce.AddArgument ("3");
   dce.AddArgument ("--time");
-  dce.AddArgument ("10");
+  dce.AddArgument ("50");
 
-  app1 = dce.Install (node.Get (1));
-  app1.Start (Seconds (1.1));
-  app1.Stop (Seconds (20));
+  app1 = dce.Install (node.Get (0));
+  app1.Start (Seconds (3));
+  app1.Stop (Seconds (200));
 
   // Launch iperf server on node 0
   dce.SetBinary ("iperf");
   dce.ResetArguments ();
   dce.ResetEnvironment ();
   dce.AddArgument ("-s");
-  app2 = dce.Install (node.Get (0));
+  app2 = dce.Install (node.Get (1));
 
   p2p.EnablePcapAll ("pikachu-mptcp");  
   app2.Start (Seconds (1));
@@ -350,7 +301,7 @@ int main (int argc, char *argv[])
   setPos (node.Get (0), 0, 20, 0);
   setPos (node.Get (1), 100, 20, 0);
   */
-  Simulator::Stop (Seconds (30));
+  Simulator::Stop (Seconds (200));
   cout<<"start simulation"<<endl;
   Simulator::Run ();
   Simulator::Destroy ();
