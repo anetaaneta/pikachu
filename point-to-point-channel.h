@@ -127,7 +127,9 @@ private:
 
   Time          m_delay;
   int32_t       m_nDevices;
-
+  int16_t	      m_transparent;
+  
+  
   /**
    * The trace source for the packet transmission animation events that the 
    * device can fire.
@@ -159,6 +161,7 @@ public:
     WireState                  m_state;
     Ptr<PointToPointNetDevice> m_src;
     Ptr<PointToPointNetDevice> m_dst;
+    
   };
 
   Link    m_link[N_DEVICES];
