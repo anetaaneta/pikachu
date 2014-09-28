@@ -149,10 +149,6 @@ int main (int argc, char *argv[])
   address5.SetBase ("10.5.0.0", "255.255.255.0");
   cout<<"ip4addr base"<<endl;
   
-  
-	
-
-	
 	for (uint32_t i = 0; i < 3; i++)
     {
       //create topology of sender to sender's router
@@ -226,8 +222,8 @@ int main (int argc, char *argv[])
 
       setPos (routerSend.Get (i), 40, i * 30, 0);
       setPos (routerSend.Get (i), 80, i * 30, 0);
-      setPos (nuisanceSend.Get (i), 40, 10+(i*30), 0);
-      setPos (nuisanceReceive.Get (i), 80, 10+(i*30), 0);
+      //setPos (nuisanceSend.Get (i), 40, 10+(i*30), 0);
+      //setPos (nuisanceReceive.Get (i), 80, 10+(i*30), 0);
     }
 	
 	
