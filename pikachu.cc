@@ -169,8 +169,8 @@ int main (int argc, char *argv[])
       cmd_oss << "route add default via " << if1.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
       LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
       cmd_oss.str ("");
-      //cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
-      //LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
+      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
       cout<<"link of node0"<<endl;
       
       
@@ -204,8 +204,8 @@ int main (int argc, char *argv[])
       cmd_oss << "route add default via " << if3.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
       LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
       cmd_oss.str ("");
-      //cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
-      //LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
+      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
       
        cout<<"link of node1"<<endl;
       
@@ -235,7 +235,7 @@ int main (int argc, char *argv[])
     }
 	cout<<"looping done!"<<endl;
 	
-	//Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+	Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   	#ifdef KERNEL_STACK
   	LinuxStackHelper::PopulateRoutingTables ();
 	#endif
@@ -270,7 +270,7 @@ int main (int argc, char *argv[])
   dce.AddArgument ("10.3.0.1");
   dce.AddArgument ("-i");
   dce.AddArgument ("3");
-  dce.AddArgument ("--time");
+  dce.AddArgument ("-t");
   dce.AddArgument ("50");
 
   app1 = dce.Install (node.Get (0));
@@ -306,10 +306,7 @@ int main (int argc, char *argv[])
   cmd_oss << "link set up dev sim2";
   LinuxStackHelper::RunIp (node.Get (0), Seconds (5+interval), cmd_oss.str ().c_str ());
   */
-  /*
-  setPos (node.Get (0), 0, 20, 0);
-  setPos (node.Get (1), 100, 20, 0);
-  */
+
   Simulator::Stop (Seconds (200));
   cout<<"start simulation"<<endl;
   Simulator::Run ();
