@@ -289,7 +289,8 @@ int main (int argc, char *argv[])
   
   
   for (int a=0; a<path_num; a++ ){
-  	b= convertInt(a);
+  	string b="";
+  	b=convertInt(a);
   dce.SetBinary ("iperf");
   dce.ResetArguments ();
   dce.ResetEnvironment ();
