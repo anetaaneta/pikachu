@@ -42,6 +42,10 @@ PointToPointChannel::GetTypeId (void)
     .AddTraceSource ("TxRxPointToPoint",
                      "Trace source indicating transmission of packet from the PointToPointChannel, used by the Animation interface.",
                      MakeTraceSourceAccessor (&PointToPointChannel::m_txrxPointToPoint))
+    .AddAttribute ("transparent", "set with no delay unlimited bandwidth, 0 set link transparent",
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&PointToPointChannel::m_transparent),
+                   MakeUintegerChecker<uint16_t> ())
   ;
   return tid;
 }
@@ -98,7 +102,12 @@ PointToPointChannel::TransmitStart (
                                   m_link[wire].m_dst, p);
 
   // Call the tx anim callback on the net device
+  if (m_transparent!=0){
+    m_txrxPointToPoint (p, src, m_link[wire].m_dst, Seconds(0), Seconds(0));
+  }
+  else{
   m_txrxPointToPoint (p, src, m_link[wire].m_dst, txTime, txTime + m_delay);
+  }
   return true;
 }
 
