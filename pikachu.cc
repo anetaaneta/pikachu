@@ -289,17 +289,18 @@ int main (int argc, char *argv[])
   
   
   for (int a=0; a<path_num; a++ ){
+  	b= convertInt(a);
   dce.SetBinary ("iperf");
   dce.ResetArguments ();
   dce.ResetEnvironment ();
   dce.AddArgument ("-c");
-  dce.AddArgument ("10.5."+itoa(a, buffer, 10)+".1");
+  dce.AddArgument ("10.5."+b+".1");
   dce.AddArgument ("-i");
   dce.AddArgument ("3");
   dce.AddArgument ("-t");
   dce.AddArgument ("20");
 
-  app1 = dce.Install (nuisanceSend.Get (i));
+  app1 = dce.Install (nuisanceSend.Get (a));
   app1.Start (Seconds (3));
   app1.Stop (Seconds (200));
 
@@ -308,7 +309,7 @@ int main (int argc, char *argv[])
   dce.ResetArguments ();
   dce.ResetEnvironment ();
   dce.AddArgument ("-s");
-  app2 = dce.Install (nuisanceReceive.Get (i));
+  app2 = dce.Install (nuisanceReceive.Get (a));
   app2.Start (Seconds (1));
   }
   
@@ -341,5 +342,12 @@ int main (int argc, char *argv[])
   cout<<"end simulation"<<endl;
 
   return 0;
+}
+
+string convertInt(int number)
+{
+   stringstream ss;//create a stringstream
+   ss << number;//add number to the stream
+   return ss.str();//return a string with the contents of the stream
 }
 
