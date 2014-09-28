@@ -92,10 +92,10 @@ int main (int argc, char *argv[])
   
   NodeContainer node, routerSend, routerReceive, nuisanceSend, nuisanceReceive;
   node.Create (2);
-  routerSend.Create (3);
-  routerReceive.Create (3);
-  nuisanceSend.Create(3);
-  nuisanceReceive.Create(3);
+  routerSend.Create (path_num);
+  routerReceive.Create (path_num);
+  nuisanceSend.Create(path_num);
+  nuisanceReceive.Create(path_num);
 
   DceManagerHelper dceManager;
   dceManager.SetTaskManagerAttribute ("FiberManagerType",
@@ -149,7 +149,7 @@ int main (int argc, char *argv[])
   address5.SetBase ("10.5.0.0", "255.255.255.0");
   cout<<"ip4addr base"<<endl;
   
-	for (uint32_t i = 0; i < 3; i++)
+	for (uint32_t i = 0; i < path_num; i++)
     {
       //create topology of sender to sender's router
       pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
@@ -271,7 +271,7 @@ int main (int argc, char *argv[])
   dce.AddArgument ("-i");
   dce.AddArgument ("3");
   dce.AddArgument ("-t");
-  dce.AddArgument ("50");
+  dce.AddArgument ("20");
 
   app1 = dce.Install (node.Get (0));
   app1.Start (Seconds (3));
@@ -283,10 +283,35 @@ int main (int argc, char *argv[])
   dce.ResetEnvironment ();
   dce.AddArgument ("-s");
   app2 = dce.Install (node.Get (1));
-
-  pointToPoint.EnablePcapAll ("pikachu-mptcp");  
   app2.Start (Seconds (1));
   
+  
+  for (int a=0; a<pathnum; a++ ){
+  dce.SetBinary ("iperf");
+  dce.ResetArguments ();
+  dce.ResetEnvironment ();
+  dce.AddArgument ("-c");
+  dce.AddArgument ("10.5."+std::to_string(i)+".1");
+  dce.AddArgument ("-i");
+  dce.AddArgument ("3");
+  dce.AddArgument ("-t");
+  dce.AddArgument ("20");
+
+  app1 = dce.Install (nuisanceSend.Get (i));
+  app1.Start (Seconds (3));
+  app1.Stop (Seconds (200));
+
+  // Launch iperf server on node 0
+  dce.SetBinary ("iperf");
+  dce.ResetArguments ();
+  dce.ResetEnvironment ();
+  dce.AddArgument ("-s");
+  app2 = dce.Install (nuisanceReceive.Get (i));
+  app2.Start (Seconds (1));
+  }
+  
+  
+  pointToPoint.EnablePcapAll ("pikachu-mptcp");  
   cout<<"up down interface"<<endl;
   //connect-disconnect
   /*
