@@ -171,6 +171,8 @@ int main (int argc, char *argv[])
       cmd_oss.str ("");
       //cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
       //LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cout<<"link of node0"<<endl;
+      
       
       //link between routers
       pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
@@ -179,6 +181,9 @@ int main (int argc, char *argv[])
       // Assign ip addresses
       Ipv4InterfaceContainer if2 = address2.Assign (r2r);
       address2.NewNetwork ();
+      
+      
+      cout<<"link of routers"<<endl;
       
         
       // Link from receiver to receiver's router
@@ -201,6 +206,8 @@ int main (int argc, char *argv[])
       cmd_oss.str ("");
       //cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
       //LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      
+       cout<<"link of node1"<<endl;
       
       
       //link from sender's nuisance to sender's router
