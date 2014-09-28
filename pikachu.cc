@@ -162,7 +162,7 @@ int main (int argc, char *argv[])
     {
       //create topology of sender to sender's router
       pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      pointToPoint.SetChannelAttribute ("transparent", UintegerValue (1));
       senderlink = pointToPoint.Install (node.Get (0), routerSend.Get (i));
       // Assign ip addresses
       Ipv4InterfaceContainer if1 = address1.Assign (senderlink);
@@ -197,7 +197,7 @@ int main (int argc, char *argv[])
         
       // Link from receiver to receiver's router
       pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      pointToPoint.SetChannelAttribute ("transparent", UintegerValue (1));
       receiverlink = pointToPoint.Install (node.Get (1), routerReceive.Get (i));
       // Assign ip addresses
       Ipv4InterfaceContainer if3 = address3.Assign (receiverlink);
