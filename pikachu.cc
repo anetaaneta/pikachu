@@ -12,13 +12,13 @@ using namespace ns3;
 using namespace std;
 NS_LOG_COMPONENT_DEFINE ("pikachu");
 
-/*void setPos (Ptr<Node> n, int x, int y, int z)
+void setPos (Ptr<Node> n, int x, int y, int z)
 {
   Ptr<ConstantPositionMobilityModel> loc = CreateObject<ConstantPositionMobilityModel> ();
   n->AggregateObject (loc);
   Vector locVec2 (x, y, z);
   loc->SetPosition (locVec2);
-}*/
+}
 
 string RemoveComma (std::string& str) 
 {
@@ -112,7 +112,10 @@ int main (int argc, char *argv[])
   stack.Install (nuisanceReceive);
   
   dceManager.Install (node);
-  dceManager.Install (router);
+  dceManager.Install (routerSend);
+  dceManager.Install (routerReceive);
+  dceManager.Install (nuisanceSend);
+  dceManager.Install (nuisanceReceive);
   cout<<"dce installation: OK"<< endl;
   cout<<"setting up tcp_mem..";
   
@@ -129,8 +132,8 @@ int main (int argc, char *argv[])
   stack.SysctlSet (node.Get(1), ".net.core.rmem_max", tcp_config_server_max);
   stack.SysctlSet (node.Get(1), ".net.core.wmem_max", tcp_config_server_max);
   
-  stack.SysctlSet (core.Get(0), ".net.core.netdev_max_backlog", "250000");
-  stack.SysctlSet (core.Get(1), ".net.core.netdev_max_backlog", "250000");                 
+  stack.SysctlSet (node.Get(0), ".net.core.netdev_max_backlog", "250000");
+  stack.SysctlSet (node.Get(1), ".net.core.netdev_max_backlog", "250000");                 
   stack.SysctlSet (node, ".net.ipv4.tcp_congestion_control", "reno");
 	
   
@@ -277,7 +280,7 @@ int main (int argc, char *argv[])
   dce.AddArgument ("-s");
   app2 = dce.Install (node.Get (1));
 
-  p2p.EnablePcapAll ("pikachu-mptcp");  
+  pointToPoint.EnablePcapAll ("pikachu-mptcp");  
   app2.Start (Seconds (1));
   
   cout<<"up down interface"<<endl;
