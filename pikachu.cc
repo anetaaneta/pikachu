@@ -7,6 +7,8 @@
 #include "ns3/netanim-module.h"
 #include "ns3/constant-position-mobility-model.h"
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace ns3;
 using namespace std;
@@ -241,8 +243,8 @@ int main (int argc, char *argv[])
 	#endif
 	cout<<"populate routing tables"<<endl;
 	
-	setPos (node.Get (0), 0, 30 * (3 - 1) / 2, 0);
-   	setPos (node.Get (1), 120, 30 * (3 - 1) / 2, 0);
+	setPos (node.Get (0), 0, 30 * (path_num - 1) / 2, 0);
+   	setPos (node.Get (1), 120, 30 * (path_num - 1) / 2, 0);
 	
 	
 		
@@ -286,12 +288,12 @@ int main (int argc, char *argv[])
   app2.Start (Seconds (1));
   
   
-  for (int a=0; a<pathnum; a++ ){
+  for (int a=0; a<path_num; a++ ){
   dce.SetBinary ("iperf");
   dce.ResetArguments ();
   dce.ResetEnvironment ();
   dce.AddArgument ("-c");
-  dce.AddArgument ("10.5."+std::to_string(i)+".1");
+  dce.AddArgument ("10.5."+itoa(a, buffer, 10)+".1");
   dce.AddArgument ("-i");
   dce.AddArgument ("3");
   dce.AddArgument ("-t");
