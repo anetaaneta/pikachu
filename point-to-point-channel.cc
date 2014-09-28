@@ -22,6 +22,7 @@
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
+#include "ns3/core-module.h"
 
 NS_LOG_COMPONENT_DEFINE ("PointToPointChannel");
 
@@ -57,7 +58,8 @@ PointToPointChannel::PointToPointChannel()
   :
     Channel (),
     m_delay (Seconds (0.)),
-    m_nDevices (0)
+    m_nDevices (0),
+    m_transparent (0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
