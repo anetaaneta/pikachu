@@ -227,7 +227,7 @@ int main (int argc, char *argv[])
     }
 	
 	
-	Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+	//Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   	#ifdef KERNEL_STACK
   	LinuxStackHelper::PopulateRoutingTables ();
 	#endif
