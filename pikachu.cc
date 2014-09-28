@@ -224,8 +224,9 @@ int main (int argc, char *argv[])
       setPos (routerSend.Get (i), 80, i * 30, 0);
       //setPos (nuisanceSend.Get (i), 40, 10+(i*30), 0);
       //setPos (nuisanceReceive.Get (i), 80, 10+(i*30), 0);
+      cout<<"done!"<<endl;
     }
-	
+	cout<<"looping done!"<<endl;
 	
 	//Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   	#ifdef KERNEL_STACK
