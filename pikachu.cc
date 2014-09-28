@@ -208,26 +208,26 @@ int main (int argc, char *argv[])
       
       
       //link from sender's nuisance to sender's router
+      /*
       pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
       pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
       snuisancelink = pointToPoint.Install (nuisanceSend.Get (i), routerSend.Get (i));
-      // Assign ip addresses
       Ipv4InterfaceContainer if4 = address4.Assign (snuisancelink);
       address4.NewNetwork ();
-      
+      */
       //link from receiver's nuisance to receiver's router
+      /*
       pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
       pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
       rnuisancelink = pointToPoint.Install (nuisanceReceive.Get (i), routerReceive.Get (i));
-      // Assign ip addresses
       Ipv4InterfaceContainer if5 = address5.Assign (rnuisancelink);
       address5.NewNetwork ();
-      
+      */
 
       setPos (routerSend.Get (i), 40, i * 30, 0);
       setPos (routerSend.Get (i), 80, i * 30, 0);
-      setPos (nuisanceSend.Get (i), 30, 10+(i*30), 0);
-      setPos (nuisanceReceive.Get (i), 90, 10+(i*30), 0);
+      setPos (nuisanceSend.Get (i), 40, 10+(i*30), 0);
+      setPos (nuisanceReceive.Get (i), 80, 10+(i*30), 0);
     }
 	
 	
