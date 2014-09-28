@@ -195,13 +195,13 @@ int main (int argc, char *argv[])
       // setup ip routes
       cmd_oss.str ("");
       cmd_oss << "rule add from " << if3.GetAddress (0, 0) << " table " << (i+1);
-      LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
+      LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
       cmd_oss.str ("");
       cmd_oss << "route add 10.3." << i << ".0/24 dev sim" << i << " scope link table " << (i+1);
-      LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
+      LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
       cmd_oss.str ("");
       cmd_oss << "route add default via " << if3.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
-      LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
+      LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
       cmd_oss.str ("");
       //cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
       //LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
@@ -285,11 +285,13 @@ int main (int argc, char *argv[])
   
   cout<<"up down interface"<<endl;
   //connect-disconnect
+  /*
   LinuxStackHelper::RunIp (router.Get (2), Seconds (0.11), "link set sim0 up");
   LinuxStackHelper::RunIp (router.Get (2), Seconds (0.15), "link set sim0 down");
   LinuxStackHelper::RunIp (router.Get (2), Seconds (5+interval), "link set sim0 up");
   LinuxStackHelper::RunIp (router.Get (1), Seconds (0.11), "link set sim0 up");
   LinuxStackHelper::RunIp (router.Get (1), Seconds (5), "link set sim0 down");
+  */
   /*cmd_oss.str ("");
   cmd_oss << "link set down dev sim1";
   LinuxStackHelper::RunIp (node.Get (0), Seconds (5), cmd_oss.str ().c_str ());
