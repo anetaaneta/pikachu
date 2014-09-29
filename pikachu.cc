@@ -9,9 +9,13 @@
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
+#include <time.h>
+#include "rapidxml.hpp"
 
 using namespace ns3;
 using namespace std;
+//using namespace rapidxml;
 NS_LOG_COMPONENT_DEFINE ("pikachu");
 
 void setPos (Ptr<Node> n, int x, int y, int z)
@@ -57,6 +61,13 @@ string convertInt(int number)
    return ss.str();//return a string with the contents of the stream
 }
 
+string dconvertInt(double number)
+{
+   stringstream ss;//create a stringstream
+   ss << number;//add number to the stream
+   return ss.str();//return a string with the contents of the stream
+}
+
 int main (int argc, char *argv[])
 {
   uint32_t nRtrs = 2;
@@ -70,6 +81,12 @@ int main (int argc, char *argv[])
   string tcp_config_server_max = "8388608";
   string tcp_config="";
   int path_num = 3;
+  bool xml=true;
+  vector<string> bwstring, delaystring, errorstring, udpbwstring;
+  int path, count;
+  rapidxml::xml_node<> *doku;
+  rapidxml::xml_attribute<> *bttr;
+  srand (time(NULL));
   
   float interval = 0.1;
   
@@ -78,8 +95,62 @@ int main (int argc, char *argv[])
   cmd.AddValue ("tcp_config", "tcp read and write memory in bytes, separated by comma, no space after comma. ex: 524288,1048576,2097152", tcp_config);
   cmd.AddValue ("tcp_config_server", "tcp read and write memory in bytes, separated by comma, no space after comma. ex: 4096,8192,8388608", tcp_config_server);
   cmd.AddValue ("interval", "interval time to connect and disconnect from wifi 1 to wifi 2", interval);
-  cmd.AddValue ("path_num", "number of path to be created between wender and receiver", path_num);
+  cmd.AddValue ("path_num", "number of path to be created between sender and receiver", path_num);
+  cmd.AddValue ("xml", "whether xml input is used. default file: note.xml", xml);
   cmd.Parse (argc, argv);
+	
+	if (xml==true){
+		ifstream myfile("note.xml");
+		rapidxml::xml_document<> doc;
+		vector<char> buffer((istreambuf_iterator<char>(myfile)), istreambuf_iterator<char>( ));
+		buffer.push_back('\0');
+		
+		doc.parse<0>(&buffer[0]);
+		rapidxml::xml_node<> *doku = doc.first_node();
+		string valstring[5];
+		rapidxml::xml_attribute<> *bttr = doku->first_attribute();
+		
+			path_num = atoi(bttr->value());
+			delaystring.resize(path_num);
+			bwstring.resize(path_num);
+			errorstring.resize(path_num);
+			udpbwstring.resize(path_num);
+		
+		for (rapidxml::xml_node<> *child = doku->first_node("parameters"); child; child=child->next_sibling("parameters")){
+			count = 0;
+				for (rapidxml::xml_attribute<> *attr = child->first_attribute(); attr; attr = attr->next_attribute())
+				{
+					valstring[count]=attr->value();
+					count++;
+				}
+			path = atoi (valstring[0].c_str());
+			if(path>path_num){
+				break;
+			}
+			delaystring[path-1]=valstring[1];
+			bwstring[path-1]=valstring[2];
+			errorstring[path-1]=valstring[3];
+			udpbwstring[path-1]=valstring[4];
+			}
+		rapidxml::xml_node<> *tcp = doku->first_node("tcp_mem");
+		tcp_mem=tcp->value();
+		tcp = doku->first_node("tcp_rmem");
+		tcp_rmem=tcp->value();
+		tcp = doku->first_node("tcp_wmem");
+		tcp_wmem=tcp->value();
+		tcp = doku->first_node("tcp_config_server");
+		tcp_config_server=tcp->value();
+	}else{
+		//just put some random number inside. hehehehee
+		delaystring.resize(path_num);
+		bwstring.resize(path_num);
+		for(int b=0; b<path_num; b++){
+		delaystring[b]=convertInt(rand() % 10 + 1)+"ms";
+		bwstring[b]=convertInt(rand() % 100 + 1)+"Mbps";
+		udpbwstring[b]=convertInt (rand()% 20 + 1);
+		errorstring[b]=dconvertInt ((rand()% 100 + 1)/10000);
+		}
+	}
 	
 	tcp_mem=RemoveComma(tcp_mem);
 	tcp_config_server=RemoveComma(tcp_config_server);
@@ -109,10 +180,9 @@ int main (int argc, char *argv[])
   DceManagerHelper dceManager;
   dceManager.SetTaskManagerAttribute ("FiberManagerType",
                                       StringValue ("UcontextFiberManager"));
-	cout<<"fibermanager: OK"<< endl;
   dceManager.SetNetworkStack ("ns3::LinuxSocketFdFactory",
                               "Library", StringValue ("liblinux.so"));
-	cout<<"liblinux: OK"<<endl;
+  cout<<"liblinux: OK"<<endl;
   LinuxStackHelper stack;
   stack.Install (node);
   stack.Install (routerSend);
@@ -161,8 +231,7 @@ int main (int argc, char *argv[])
 	for (uint32_t i = 0; i < path_num; i++)
     {
       //create topology of sender to sender's router
-      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("transparent", UintegerValue (1));
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("20Gbps"));
       senderlink = pointToPoint.Install (node.Get (0), routerSend.Get (i));
       // Assign ip addresses
       Ipv4InterfaceContainer if1 = address1.Assign (senderlink);
@@ -180,24 +249,29 @@ int main (int argc, char *argv[])
       cmd_oss.str ("");
       cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
       LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
-      cout<<"link of node0"<<endl;
       
+      Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> (
+      "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"),
+      "ErrorRate", DoubleValue (atof(errorstring[i].c_str())),
+      "ErrorUnit", EnumValue (RateErrorModel::ERROR_UNIT_PACKET)
+      );
+
       
       //link between routers
-      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bwstring[i]));
+      pointToPoint.SetChannelAttribute ("Delay", StringValue (delaystring[i]));
       r2r = pointToPoint.Install (routerSend.Get (i), routerReceive.Get (i));
+      r2r.Get(1)-> SetAttribute ("ReceiveErrorModel", PointerValue (em));
       // Assign ip addresses
       Ipv4InterfaceContainer if2 = address2.Assign (r2r);
       address2.NewNetwork ();
       
       
-      cout<<"link of routers"<<endl;
+      cout<<"link of "<<i<<" routers with bw "<<bwstring[i]<<", delay "<<delaystring[i]<<", and error rate "<<errorstring[i]<<endl;
       
         
       // Link from receiver to receiver's router
-      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("transparent", UintegerValue (1));
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("20Gbps"));
       receiverlink = pointToPoint.Install (node.Get (1), routerReceive.Get (i));
       // Assign ip addresses
       Ipv4InterfaceContainer if3 = address3.Assign (receiverlink);
@@ -216,21 +290,17 @@ int main (int argc, char *argv[])
       cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
       LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
       
-       cout<<"link of node1"<<endl;
-      
       
       //link from sender's nuisance to sender's router
       
-      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("20Gbps"));
       snuisancelink = pointToPoint.Install (nuisanceSend.Get (i), routerSend.Get (i));
       Ipv4InterfaceContainer if4 = address4.Assign (snuisancelink);
       address4.NewNetwork ();
       
       //link from receiver's nuisance to receiver's router
       
-      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-      pointToPoint.SetChannelAttribute ("Delay", StringValue ("10ms"));
+      pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("20Gbps"));
       rnuisancelink = pointToPoint.Install (nuisanceReceive.Get (i), routerReceive.Get (i));
       Ipv4InterfaceContainer if5 = address5.Assign (rnuisancelink);
       address5.NewNetwork ();
@@ -298,50 +368,34 @@ int main (int argc, char *argv[])
   for (int a=0; a<path_num; a++ ){
   	string b="";
   	b=convertInt(a);
-  dce.SetBinary ("iperf");
-  dce.ResetArguments ();
-  dce.ResetEnvironment ();
-  dce.AddArgument ("-c");
-  dce.AddArgument ("10.5."+b+".1");
-  dce.AddArgument ("-i");
-  dce.AddArgument ("3");
-  dce.AddArgument ("-t");
-  dce.AddArgument ("20");
+        dce.SetBinary ("iperf");
+        dce.ResetArguments ();
+        dce.ResetEnvironment ();
+        dce.AddArgument ("-c");
+        dce.AddArgument ("10.5."+b+".1");
+        dce.AddArgument ("-u");
+        dce.AddArgument ("-b");
+        dce.AddArgument (udpbwstring[a]+"m");
+        cout<<"udp bandwidth for link "<<a<<" is "<<udpbwstring[a]<<endl;
+        dce.AddArgument ("-t");
+        dce.AddArgument ("20");
 
-  app1 = dce.Install (nuisanceSend.Get (a));
-  app1.Start (Seconds (3));
-  app1.Stop (Seconds (200));
+        app1 = dce.Install (nuisanceSend.Get (a));
+        app1.Start (Seconds (3));
+        app1.Stop (Seconds (200));
 
-  // Launch iperf server on node 0
-  dce.SetBinary ("iperf");
-  dce.ResetArguments ();
-  dce.ResetEnvironment ();
-  dce.AddArgument ("-s");
-  app2 = dce.Install (nuisanceReceive.Get (a));
-  app2.Start (Seconds (1));
+        // Launch iperf server on node 0
+        dce.SetBinary ("iperf");
+        dce.ResetArguments ();
+        dce.ResetEnvironment ();
+        dce.AddArgument ("-s");
+        dce.AddArgument ("-u");
+        app2 = dce.Install (nuisanceReceive.Get (a));
+        app2.Start (Seconds (1));
   }
   
   
-  pointToPoint.EnablePcapAll ("pikachu-mptcp");  
-  cout<<"up down interface"<<endl;
-  //connect-disconnect
-  /*
-  LinuxStackHelper::RunIp (router.Get (2), Seconds (0.11), "link set sim0 up");
-  LinuxStackHelper::RunIp (router.Get (2), Seconds (0.15), "link set sim0 down");
-  LinuxStackHelper::RunIp (router.Get (2), Seconds (5+interval), "link set sim0 up");
-  LinuxStackHelper::RunIp (router.Get (1), Seconds (0.11), "link set sim0 up");
-  LinuxStackHelper::RunIp (router.Get (1), Seconds (5), "link set sim0 down");
-  */
-  /*cmd_oss.str ("");
-  cmd_oss << "link set down dev sim1";
-  LinuxStackHelper::RunIp (node.Get (0), Seconds (5), cmd_oss.str ().c_str ());
-  cmd_oss.str ("");
-  cmd_oss << "link set down dev sim2";
-  LinuxStackHelper::RunIp (node.Get (0), Seconds (0.5), cmd_oss.str ().c_str ());
-  cmd_oss.str ("");
-  cmd_oss << "link set up dev sim2";
-  LinuxStackHelper::RunIp (node.Get (0), Seconds (5+interval), cmd_oss.str ().c_str ());
-  */
+  pointToPoint.EnablePcapAll ("pikachu-mptcp");
 
   Simulator::Stop (Seconds (200));
   cout<<"start simulation"<<endl;
