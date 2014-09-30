@@ -212,7 +212,10 @@ int main (int argc, char *argv[])
   stack.SysctlSet (node.Get(1), ".net.core.wmem_max", tcp_config_server_max);
   
   stack.SysctlSet (node.Get(0), ".net.core.netdev_max_backlog", "250000");
-  stack.SysctlSet (node.Get(1), ".net.core.netdev_max_backlog", "250000");                 
+  stack.SysctlSet (node.Get(1), ".net.core.netdev_max_backlog", "250000");
+  stack.SysctlSet (routerSend, ".net.core.netdev_max_backlog", "250000"); 
+  stack.SysctlSet (routerReceive, ".net.core.netdev_max_backlog", "250000"); 
+  
   stack.SysctlSet (node, ".net.ipv4.tcp_congestion_control", "reno");
 	
   
