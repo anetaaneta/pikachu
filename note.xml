@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<note total_path="4">
+<parameters path="1" delay="10ms" bw="100Mbps" e="0.0001" ubw="2"/>
+<parameters path="2" delay="20ms" bw="110Mbps" e="0.0002" ubw="7"/>
+<parameters path="3" delay="30ms" bw="120Mbps" e="0.002" ubw="5"/>
+<parameters path="4" delay="5ms" bw="120Mbps" e="0.001" ubw="4"/>
+  <tcp_mem>17949 23932 35898</tcp_mem>
+  <tcp_rmem>524288 1048576 2097152</tcp_rmem>
+  <tcp_wmem>262144 524288 1048576</tcp_wmem>
+  <tcp_config_server>4096 8192 8388608</tcp_config_server>
+</note>
+

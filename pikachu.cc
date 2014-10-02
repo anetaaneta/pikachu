@@ -260,9 +260,6 @@ int main (int argc, char *argv[])
       cmd_oss.str ("");
       cmd_oss << "route add default via " << if1.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
       LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), cmd_oss.str ().c_str ());
-      cmd_oss.str ("");
-      cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
-      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
       
       Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> (
       "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"),
@@ -299,11 +296,7 @@ int main (int argc, char *argv[])
       LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
       cmd_oss.str ("");
       cmd_oss << "route add default via " << if3.GetAddress (1, 0) << " dev sim" << i << " table " << (i+1);
-      LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());
-      cmd_oss.str ("");
-      cmd_oss << "route add 10.3."<<i<<".0/16 via " << if2.GetAddress (1, 0) << " dev sim1";
-      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
-      
+      LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), cmd_oss.str ().c_str ());     
       
       //link from sender's nuisance to sender's router
       
@@ -319,21 +312,50 @@ int main (int argc, char *argv[])
       Ipv4InterfaceContainer if5 = address5.Assign (rnuisancelink);
       address5.NewNetwork ();
       
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.1."<<i<<".0/24 via " << if1.GetAddress (1, 0) << " dev sim0";
+      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.2."<<i<<".0/24 via " << if2.GetAddress (0, 0) << " dev sim1";
+      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.3."<<i<<".0/24 via " << if2.GetAddress (0, 0) << " dev sim1";
+      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.4."<<i<<".0/24 via " << if4.GetAddress (1, 0) << " dev sim2";
+      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.5."<<i<<".0/24 via " << if2.GetAddress (0, 0) << " dev sim1";
+      LinuxStackHelper::RunIp (routerSend.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.1."<<i<<".0/24 via " << if2.GetAddress (1, 0) << " dev sim0";
+      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.2."<<i<<".0/24 via " << if2.GetAddress (1, 0) << " dev sim0";
+      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.3."<<i<<".0/24 via " << if3.GetAddress (1, 0) << " dev sim1";
+      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.4."<<i<<".0/24 via " << if2.GetAddress (1, 0) << " dev sim0";
+      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
+      cmd_oss.str ("");
+      cmd_oss << "route add 10.5."<<i<<".0/24 via " << if5.GetAddress (1, 0) << " dev sim2";
+      LinuxStackHelper::RunIp (routerReceive.Get (i), Seconds (0.2), cmd_oss.str ().c_str ());
 
       setPos (routerSend.Get (i), 40, i * 30, 0);
       setPos (routerReceive.Get (i), 80, i * 30, 0);
       setPos (nuisanceSend.Get (i), 40, 10+(i*30), 0);
       setPos (nuisanceReceive.Get (i), 80, 10+(i*30), 0);
-      cout<<"done!"<<endl;
     }
-	cout<<"looping done!"<<endl;
 	
-	Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+	/*Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
   	#ifdef KERNEL_STACK
   	LinuxStackHelper::PopulateRoutingTables ();
 	#endif
 	cout<<"populate routing tables"<<endl;
-	
+	*/
 	setPos (node.Get (0), 0, 30 * (path_num - 1) / 2, 0);
    	setPos (node.Get (1), 120, 30 * (path_num - 1) / 2, 0);
 	
@@ -342,8 +364,14 @@ int main (int argc, char *argv[])
   // default route
   LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), "route add default via 10.1.0.2 dev sim0");
   LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), "route add default via 10.3.0.2 dev sim0");
-  //LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), "rule show");
-  cout<<"default route"<<endl;
+  LinuxStackHelper::RunIp (node.Get (0), Seconds (0.1), "rule show");
+  LinuxStackHelper::RunIp (node.Get (1), Seconds (0.1), "rule show");
+  LinuxStackHelper::RunIp (routerSend.Get (0), Seconds (0.5), "route list");
+  LinuxStackHelper::RunIp (routerReceive.Get (0), Seconds (0.5), "route list");
+  LinuxStackHelper::RunIp (routerSend.Get (1), Seconds (0.5), "route list");
+  LinuxStackHelper::RunIp (routerReceive.Get (1), Seconds (0.5), "route list");
+  LinuxStackHelper::RunIp (nuisanceSend.Get (0), Seconds (0.5), "route list");
+  LinuxStackHelper::RunIp (nuisanceReceive.Get (0), Seconds (0.5), "route list");
 
   // debug
   stack.SysctlSet (node, ".net.mptcp.mptcp_debug", "1");
